@@ -1,49 +1,87 @@
-from flask import Flask, render_template, request
-from scipy.misc import imsave,imread, imresize
-import numpy as np
-import keras.models
-import re
-import base64
-
-import sys 
 import os
-sys.path.append(os.path.abspath("./model"))
-from load import *
+import cv2
+import keras
+from flask import Flask, render_template, request
+from flask_ngrok import run_with_ngrok
+import numpy as np
+from matplotlib import pyplot as plt
 
-app = Flask(__name__)
-global model, graph
-model, graph = init()
-    
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D, Dropout
+from tensorflow.keras.optimizers import Adam
+
+app = Flask(__name__, static_folder='/templates')
+run_with_ngrok(app)
+
+app.config['UPLOADS'] = 'uploads'
+
+#loading model
+def build_model():
+    model = Sequential()
+
+    #First Conv Layer 
+    model.add(Conv2D(filters=64, kernel_size=(3,3), padding = 'same', activation='relu', input_shape = (28, 28, 1)))
+    model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+
+    #Second Conv Layer 
+    model.add(Conv2D(filters = 128, kernel_size=(3,3), padding = 'same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+
+    #Third Conv Layer 
+    model.add(Conv2D(filters = 128, kernel_size=(3,3), padding = 'same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+
+    #Fourth Conv Layer 
+    model.add(Conv2D(filters = 128, kernel_size=(3,3), padding = 'same', activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)))
+
+    model.add(Flatten())
+
+    # Fully Connected Layer
+    model.add(Dense(units = 256, activation='relu'))
+    model.add(Dropout(0.5))
+
+    # Output Layer
+    model.add(Dense(units = 10, activation='softmax'))
+
+    model.compile( optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    return model
+
+def load_trained_model(weights_path):
+   model = build_model()
+   model.load_weights(weights_path)
+
+
+cnn = load_trained_model('model.h5')
+
+def process(file):
+    image = cv2.imread(file)
+    image = cv2.resize(image, (32, 32))
+    image = np.resize(image, (1, 32, 32, 3))
+    image = image/255.0
+    image = 1-image
+    return image
+
 @app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-@app.route('/predict/', methods=['GET','POST'])
+@app.route('/', methods=['GET', 'POST'])
 def predict():
-    # get data from drawing canvas and save as image
-    parseImage(request.get_data())
 
-    # read parsed image back in 8-bit, black and white mode (L)
-    x = imread('output.png', mode='L')
-    x = np.invert(x)
-    x = imresize(x,(28,28))
+    if request.method == 'POST':
 
-    # reshape image data for use in neural network
-    x = x.reshape(1,28,28,1)
-    with graph.as_default():
-        out = model.predict(x)
-        print(out)
-        print(np.argmax(out, axis=1))
-        response = np.array_str(np.argmax(out, axis=1))
-        return response 
+        file = request.files['file']
+        filepath = f'uploads/{file.filename}'
+        file.save(filepath)
+        image = process(filepath)
+        print('process done')
+        prediction = cnn.predict_classes(image)
     
-def parseImage(imgData):
-    # parse canvas bytes and save as output.png
-    imgstr = re.search(b'base64,(.*)', imgData).group(1)
-    with open('output.png','wb') as output:
-        output.write(base64.decodebytes(imgstr))
+        return render_template('index.html', number=prediction[0])
 
 if __name__ == '__main__':
-    app.debug = True
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run()
