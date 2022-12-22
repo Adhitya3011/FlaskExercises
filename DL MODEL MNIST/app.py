@@ -1,21 +1,19 @@
 import os
 import cv2
-import keras
 from flask import Flask, render_template, request
 from flask_ngrok import run_with_ngrok
 import numpy as np
 from matplotlib import pyplot as plt
+from PIL import Image
+
 
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D, Dropout
-from tensorflow.keras.optimizers import Adam
+from tensorflow import keras
 
-app = Flask(__name__, static_folder='/templates')
-run_with_ngrok(app)
-
-app.config['UPLOADS'] = 'uploads'
+from keras.models import Sequential, load_model
+from keras.layers import Dense
+from keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D, Dropout
+from keras.optimizers import Adam
 
 #loading model
 def build_model():
@@ -53,35 +51,32 @@ def build_model():
 def load_trained_model(weights_path):
    model = build_model()
    model.load_weights(weights_path)
+   return model
 
+app = Flask(__name__, template_folder='templates')
 
-cnn = load_trained_model('model.h5')
-
-def process(file):
-    image = cv2.imread(file)
-    image = cv2.resize(image, (32, 32))
-    image = np.resize(image, (1, 32, 32, 3))
-    image = image/255.0
-    image = 1-image
-    return image
+def init():
+    global model, graph
+    model = load_trained_model('D:\EigenMaps.AI\Assignments\Flask Scikit Learn\DL MODEL MNIST\model.h5')
+    graph = tf.compat.v1.get_default_graph()
 
 @app.route('/')
-def index():
-    return render_template('index.html')
+def upload_file():
+   return render_template('index.html')
 
-@app.route('/', methods=['GET', 'POST'])
-def predict():
-
+@app.route('/uploader', methods = ['POST'])
+def upload_image_file():
     if request.method == 'POST':
-
-        file = request.files['file']
-        filepath = f'uploads/{file.filename}'
-        file.save(filepath)
-        image = process(filepath)
-        print('process done')
-        prediction = cnn.predict_classes(image)
-    
-        return render_template('index.html', number=prediction[0])
+        img = Image.open(request.files['file'].stream).convert("L")
+        img = img.resize((28,28))
+        im2arr = np.array(img)
+        im2arr = im2arr.reshape(1,28,28,1)
+        with graph.as_default():
+            model = load_trained_model('D:\EigenMaps.AI\Assignments\Flask Scikit Learn\DL MODEL MNIST\model.h5')
+            y_pred = np.argmax(model.predict(im2arr),axis=1)
+        return 'Predicted Number: ' + str(y_pred[0])
 
 if __name__ == '__main__':
-    app.run()
+    print("Loading Model...")
+    init()
+    app.run(debug=True)

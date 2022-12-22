@@ -4,11 +4,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
+
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D, Dropout
-from tensorflow.keras.optimizers import Adam
+from tensorflow import keras
+
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import Conv2D, MaxPooling2D, Flatten, ZeroPadding2D, Dropout
+from keras.optimizers import Adam
 
 #loading MNIST dataset
 (X_train,Y_train),(X_test,Y_test) = tf.keras.datasets.mnist.load_data()
