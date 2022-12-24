@@ -1,7 +1,10 @@
+#imports
 from flask import Flask, request
 
+#init app
 app = Flask(__name__)
 
+#homepage 
 @app.route('/')
 def getIP():
     ip_add = request.remote_addr

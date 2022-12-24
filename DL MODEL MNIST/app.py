@@ -48,17 +48,18 @@ def build_model():
 
     return model
 
+#function to load the model given path of weights file
 def load_trained_model(weights_path):
    model = build_model()
    model.load_weights(weights_path)
    return model
 
+#creating flask app
 app = Flask(__name__, template_folder='templates')
 
 def init():
-    global model, graph
+    global model
     model = load_trained_model('D:\EigenMaps.AI\Assignments\Flask Scikit Learn\DL MODEL MNIST\model.h5')
-    graph = tf.compat.v1.get_default_graph()
 
 @app.route('/')
 def upload_file():
@@ -71,9 +72,8 @@ def upload_image_file():
         img = img.resize((28,28))
         im2arr = np.array(img)
         im2arr = im2arr.reshape(1,28,28,1)
-        with graph.as_default():
-            model = load_trained_model('D:\EigenMaps.AI\Assignments\Flask Scikit Learn\DL MODEL MNIST\model.h5')
-            y_pred = np.argmax(model.predict(im2arr),axis=1)
+        model = load_trained_model('D:\EigenMaps.AI\Assignments\Flask Scikit Learn\DL MODEL MNIST\model.h5')
+        y_pred = np.argmax(model.predict(im2arr),axis=1)
         return 'Predicted Number: ' + str(y_pred[0])
 
 if __name__ == '__main__':
