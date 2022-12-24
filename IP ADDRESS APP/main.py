@@ -7,7 +7,7 @@ app = Flask(__name__)
 #homepage 
 @app.route('/')
 def getIP():
-    ip_add = request.remote_addr
+    ip_add = request.remote_addr #.remote_add gets local IP
     return '<h1> IP:  ' + ip_add
 
 if __name__ == '__main__':
