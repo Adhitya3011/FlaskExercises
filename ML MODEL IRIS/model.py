@@ -26,7 +26,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import GridSearchCV
 
 #loading datasets
-df = pd.read_csv("iris.csv")
+df = pd.read_csv("D:\Work\FlaskExercises\ML MODEL IRIS\iris.csv")
 
 #splitting target and predictors
 X = df.iloc[:,:-1]
@@ -36,9 +36,9 @@ y = df.iloc[:,-1]
 X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.3,random_state=1)
 
 #scaling features for random forest
-sc = StandardScaler()
+"""sc = StandardScaler()
 X_train = sc.fit_transform(X_train)
-X_test= sc.transform(X_test)
+X_test= sc.transform(X_test)"""
 
 #training model 
 model = RandomForestClassifier()
